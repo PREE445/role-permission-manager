@@ -1,10 +1,12 @@
 package com.internship.tool.config;
 
 import com.internship.tool.service.EmailService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "app.scheduling.enabled", havingValue = "true")
 public class SchedulerConfig {
 
     private final EmailService emailService;

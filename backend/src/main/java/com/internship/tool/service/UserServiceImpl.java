@@ -28,9 +28,12 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = {"users", "usersList"}, allEntries = true)
     public User createUser(User user) {
 
-        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new InvalidInputException("Email cannot be empty");
         }
+        user.setEmail(user.getEmail().trim().toLowerCase());
+        user.setRole(normalizeRole(user.getRole()));
+        user.setIsActive(user.getIsActive() == null ? Boolean.TRUE : user.getIsActive());
 
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new InvalidInputException("Email already exists");
@@ -58,10 +61,22 @@ public class UserServiceImpl implements UserService {
 
         User existingUser = getUserById(id);
 
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new InvalidInputException("Email cannot be empty");
+        }
+
+        String email = user.getEmail().trim().toLowerCase();
+        userRepository.findByEmail(email)
+                .filter(found -> !found.getId().equals(id))
+                .ifPresent(found -> {
+                    throw new InvalidInputException("Email already exists");
+                });
+
         existingUser.setName(user.getName());
-        existingUser.setEmail(user.getEmail());
-        existingUser.setRole(user.getRole());
-        existingUser.setIsActive(user.getIsActive());
+        existingUser.setEmail(email);
+        existingUser.setPassword(user.getPassword() == null ? existingUser.getPassword() : user.getPassword());
+        existingUser.setRole(normalizeRole(user.getRole()));
+        existingUser.setIsActive(user.getIsActive() == null ? existingUser.getIsActive() : user.getIsActive());
 
         return userRepository.save(existingUser);
     }
@@ -72,6 +87,17 @@ public class UserServiceImpl implements UserService {
 
         User user = getUserById(id);
         userRepository.delete(user);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "USER";
+        }
+        String normalized = role.replace("ROLE_", "").trim().toUpperCase();
+        if (!normalized.equals("ADMIN") && !normalized.equals("USER")) {
+            throw new InvalidInputException("Role must be ADMIN or USER");
+        }
+        return normalized;
     }
 }
 

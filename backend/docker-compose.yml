@@ -1,34 +1,36 @@
 services:
+
+  # 🔵 MySQL
   mysql:
     image: mysql:8
-    container_name: rpm_mysql
+    container_name: mysql_db
     environment:
       MYSQL_ROOT_PASSWORD: Preeti@20042004
       MYSQL_DATABASE: mydb
     ports:
-      - "3308:3306"
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      retries: 5
 
+  # 🔴 Redis
   redis:
-    image: redis:7
-    container_name: rpm_redis
+    image: redis:latest
+    container_name: redis_cache
     ports:
-      - "6380:6379"
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      retries: 5
 
+  # 🟢 Spring Boot App
   app:
-    build: ./backend
-    container_name: rpm_api
+    build: .
+    container_name: spring_app
     ports:
-      - "9090:8080"
+      - "9090:8080"   # IMPORTANT FIX
     depends_on:
       mysql:
         condition: service_healthy
@@ -42,19 +44,21 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
 
+  # 🟡 Adminer (DB UI)
   adminer:
     image: adminer
-    container_name: rpm_adminer
+    container_name: adminer_ui
     ports:
       - "8081:8080"
     depends_on:
       - mysql
 
+  # 🟣 Redis UI
   redis-commander:
     image: rediscommander/redis-commander
-    container_name: rpm_redis_ui
+    container_name: redis_ui
     ports:
-      - "8083:8081"
+      - "8082:8081"
     environment:
       REDIS_HOSTS: local:redis:6379
     depends_on:
